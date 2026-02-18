@@ -2,108 +2,32 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<title>єОселя / USL калькулятор</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>єОселя / USL v1.5 Admin</title>
 
 <style>
-:root{
- --bg:#f2f4f8;
- --card:#ffffff;
- --text:#1a1a1a;
- --accent:#0a84ff;
- --soft:#eef3ff;
-}
-
-body.dark{
- --bg:#0f1720;
- --card:#18222d;
- --text:#e6edf3;
- --accent:#3aa0ff;
- --soft:#1e2b3a;
-}
-
-body{
- font-family:Arial;
- background:var(--bg);
- color:var(--text);
- margin:0;
- padding:20px;
- transition:.25s;
-}
-
-.card{
- max-width:760px;
- margin:auto;
- background:var(--card);
- padding:24px;
- border-radius:14px;
- box-shadow:0 10px 30px rgba(0,0,0,.08);
-}
-
-.block{margin-top:16px}
-
-label{
- font-weight:bold;
- display:flex;
- justify-content:space-between;
-}
-
-input,select{
- width:100%;
- padding:8px;
- margin-top:6px;
-}
-
-input[type=range]{padding:0}
-
-.result{
- margin-top:22px;
- background:var(--soft);
- padding:16px;
- border-radius:10px;
- font-size:15px;
-}
-
-.ok{color:#0a7a2f;font-weight:bold}
-.bad{color:#c40000;font-weight:bold}
-
-button{
- padding:10px 14px;
- border:none;
- border-radius:8px;
- background:var(--accent);
- color:white;
- cursor:pointer;
- margin:4px 4px 0 0;
-}
-
-.admin{
- background:#fff4e5;
- padding:14px;
- border-radius:10px;
- margin-top:20px;
- display:none;
-}
-
-@media print{
- button,.admin{display:none}
- body{background:white}
-}
+body{font-family:Arial;background:#f3f5fa;padding:30px;}
+.container{max-width:760px;background:white;padding:26px;border-radius:14px;box-shadow:0 8px 25px rgba(0,0,0,.08);}
+.block{margin-top:16px;}
+label{font-weight:bold;display:flex;justify-content:space-between;}
+input[type=range],input[type=number]{width:100%;}
+.result{margin-top:22px;background:#eef3ff;padding:16px;border-radius:10px;}
+.admin{background:#fff4e5;padding:14px;border-radius:10px;margin-top:18px;display:none;}
+.bad{color:#c40000;font-weight:bold;}
+.ok{color:#0a7a2f;font-weight:bold;}
+button{padding:8px 12px;border-radius:8px;border:none;background:#0a84ff;color:white;cursor:pointer;margin-top:6px;}
+.small{font-size:13px;color:#666;}
 </style>
 </head>
 
 <body>
+<div class="container">
 
-<div class="card">
+<h2>єОселя / USL калькулятор v1.5</h2>
 
-<h2>єОселя / USL калькулятор</h2>
-
-<button onclick="toggleTheme()">🌙/☀️</button>
-<button onclick="loadRate()">Курс НБУ</button>
-<button onclick="adminLogin()">Адмін</button>
+<button onclick="adminLogin()">Адмін режим</button>
 <button onclick="window.print()">PDF</button>
 
-<div id="rateBox"></div>
+<!-- CLIENT CONTROLS -->
 
 <div class="block">
 <label>Склад сімʼї <span id="famVal"></span></label>
@@ -111,7 +35,7 @@ button{
 </div>
 
 <div class="block">
-<label>Площа квартири м² <span id="areaVal"></span></label>
+<label>Площа <span id="areaVal"></span></label>
 <input type="range" id="area" min="20" max="150" value="60">
 </div>
 
@@ -134,29 +58,31 @@ button{
 </div>
 
 <div class="block">
-<label>Термін років <span id="yearsVal"></span></label>
+<label>Термін <span id="yearsVal"></span></label>
 <input type="range" id="years" min="5" max="30" value="20">
 </div>
 
-<!-- ADMIN -->
+<!-- ADMIN PANEL -->
 
 <div class="admin" id="adminBox">
 <h3>Адмін налаштування</h3>
 
-База м² (Київ)
-<input id="baseM2" type="number" value="30081">
+<label>Базова опосередкована вартість м²</label>
+<input type="number" id="baseM2" value="30081">
 
-Коефіцієнт
-<input id="coef" type="number" value="2">
+<label>Коефіцієнт програми</label>
+<input type="number" id="coef" value="2" step="0.1">
 
-Допуск %
-<input id="extraPct" type="number" value="10">
+<label>Допуск %</label>
+<input type="number" id="extraPct" value="10">
 
-Мін внесок %
-<input id="minDown" type="number" value="20">
+<label>Мін перший внесок %</label>
+<input type="number" id="minDown" value="20">
 
-Ліміт кредиту банку
-<input id="bankCap" type="number" value="3000000">
+<label>Ліміт кредиту банку</label>
+<input type="number" id="bankCap" value="3000000">
+
+<button onclick="calc()">Застосувати</button>
 </div>
 
 <div class="result" id="out"></div>
@@ -164,27 +90,13 @@ button{
 </div>
 
 <script>
-const PIN="1357";
-let usd=38;
-
-function toggleTheme(){
- document.body.classList.toggle("dark");
-}
+const PIN="1357"; // зміниш сам
 
 function adminLogin(){
- if(prompt("PIN")==PIN){
+ let p=prompt("PIN:");
+ if(p===PIN){
   document.getElementById("adminBox").style.display="block";
  }
-}
-
-async function loadRate(){
- try{
-  let r=await fetch("https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json");
-  let j=await r.json();
-  usd=j[0].rate;
-  document.getElementById("rateBox").innerHTML="USD НБУ: "+usd.toFixed(2);
-  calc();
- }catch{}
 }
 
 const id=x=>document.getElementById(x);
@@ -211,6 +123,7 @@ function calc(){
 
  let norm=fam<=2?52.5:52.5+(fam-2)*21;
  let maxArea=Math.min(norm*(1+extra),115.5);
+
  let limitM2=base*coef*(1+extra);
  let maxPrice=limitM2*norm;
 
@@ -224,30 +137,33 @@ function calc(){
  let pay = loan*(mr*Math.pow(1+mr,months)) /
           (Math.pow(1+mr,months)-1);
 
- let fit = area<=maxArea &&
-           m2<=limitM2 &&
-           price<=maxPrice &&
-           downP>=minDown &&
-           loan<=cap;
+ let okArea=area<=maxArea;
+ let okM2=m2<=limitM2;
+ let okPrice=price<=maxPrice;
+ let okDown=downP>=minDown;
+ let okLoan=loan<=cap;
+
+ let fit=okArea&&okM2&&okPrice&&okDown&&okLoan;
 
  id("famVal").innerHTML=fam;
  id("areaVal").innerHTML=area+" м²";
  id("m2Val").innerHTML=fmt(m2);
  id("downVal").innerHTML=downP+"%";
- id("yearsVal").innerHTML=years+" років;
+ id("yearsVal").innerHTML=years+" років";
 
  id("out").innerHTML=`
- ${fit?'<div class="ok">✅ Обʼєкт проходить</div>':'<div class="bad">❌ Обʼєкт не проходить</div>'}
+ ${fit?'<div class="ok">✅ Проходить</div>':'<div class="bad">❌ Не проходить</div>'}
  <hr>
- Ціна квартири: <b>${fmt(price)} грн</b> (~$${fmt((price/usd).toFixed(0))})<br>
- Перший внесок: ${fmt(downSum)} грн<br>
- Сума кредиту: ${fmt(loan)} грн<br>
- Щомісячний платіж: <b>${fmt(pay.toFixed(0))} грн</b><br>
+ Ціна: ${fmt(price)} грн<br>
+ Внесок: ${fmt(downSum)} грн<br>
+ Кредит: ${fmt(loan)} грн<br>
+ Платіж: ${fmt(pay.toFixed(0))} грн<br>
 
- <hr>
- Ліміт ціни м²: ${fmt(limitM2)} грн<br>
- Макс площа: ${maxArea.toFixed(1)} м²<br>
- Макс ціна квартири: ${fmt(maxPrice.toFixed(0))} грн
+ <div class="small">
+ Ліміт м²: ${fmt(limitM2)}<br>
+ Макс ціна: ${fmt(maxPrice.toFixed(0))}<br>
+ Ліміт банку: ${fmt(cap)}
+ </div>
  `;
 }
 
