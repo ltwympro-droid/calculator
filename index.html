@@ -1,140 +1,90 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-<title>єОселя / USL Онлайн калькулятор</title>
-
+<meta charset="UTF-8">
+<title>USL / єОселя v2.0 Agent Tool</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{
- font-family:Arial;
- background:#f2f4f8;
- margin:0;
- padding:20px;
-}
-.card{
- max-width:820px;
- margin:auto;
- background:white;
- padding:24px;
- border-radius:14px;
- box-shadow:0 10px 30px rgba(0,0,0,.08);
-}
-h2{margin-top:0}
-
+body{font-family:Arial;background:#f2f4f8;margin:0;padding:20px;}
+.card{max-width:900px;margin:auto;background:white;padding:24px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.08);}
 .block{margin-top:18px}
-label{
- font-weight:bold;
- display:flex;
- justify-content:space-between;
-}
-
-input[type=range]{width:100%}
-input[type=number]{width:100%;padding:8px}
-
-.result{
- margin-top:22px;
- background:#eef3ff;
- padding:16px;
- border-radius:10px;
- font-size:15px;
-}
-
+label{font-weight:bold}
+input,select{width:100%;padding:8px;margin-top:4px}
+.result{margin-top:20px;background:#eef3ff;padding:16px;border-radius:10px}
 .ok{color:#0a7a2f;font-weight:bold}
 .bad{color:#c40000;font-weight:bold}
-
-button{
- padding:9px 14px;
- border-radius:8px;
- border:none;
- background:#0a84ff;
- color:white;
- cursor:pointer;
- margin-right:6px;
- margin-top:6px;
-}
-
-.admin{
- background:#fff4e5;
- padding:14px;
- border-radius:10px;
- margin-top:20px;
- display:none;
-}
-
-@media print{
- button{display:none}
- body{background:white}
-}
+button{padding:10px 14px;border:none;border-radius:8px;background:#0a84ff;color:white;cursor:pointer;margin:5px 5px 0 0}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.admin{background:#fff4e5;padding:14px;border-radius:10px;margin-top:20px;display:none}
+@media print{button,.admin{display:none}}
 </style>
 </head>
 
 <body>
-
 <div class="card">
 
-<h2>єОселя / USL калькулятор — онлайн</h2>
+<h2>єОселя / USL v2.0 — Agent Tool</h2>
 
-<button onclick="loadRate()">Оновити курс НБУ</button>
+<button onclick="loadRate()">Курс НБУ</button>
 <button onclick="adminLogin()">Адмін</button>
-<button onclick="window.print()">PDF</button>
+<button onclick="window.print()">PDF клієнту</button>
 
 <div id="rateBox"></div>
 
-<!-- CLIENT INPUT -->
+<h3>Параметри клієнта</h3>
 
-<div class="block">
-<label>Склад сімʼї <span id="famVal"></span></label>
-<input type="range" id="fam" min="1" max="6" value="2">
+<div class="grid">
+<div>
+<label>Сімʼя (осіб)</label>
+<input id="fam" type="number" value="2">
 </div>
 
-<div class="block">
-<label>Площа м² <span id="areaVal"></span></label>
-<input type="range" id="area" min="20" max="150" value="60">
+<div>
+<label>Перший внесок %</label>
+<input id="down" type="number" value="25">
 </div>
 
-<div class="block">
-<label>Ціна за м² <span id="m2Val"></span></label>
-<input type="range" id="m2" min="25000" max="120000" step="1000" value="65000">
+<div>
+<label>Термін років</label>
+<input id="years" type="number" value="20">
+</div>
 </div>
 
-<div class="block">
-<label>Перший внесок % <span id="downVal"></span></label>
-<input type="range" id="down" min="10" max="80" value="25">
-</div>
-
-<div class="block">
-<label>Ставка</label>
 <select id="rate">
 <option value="3">3%</option>
 <option value="7">7%</option>
 </select>
+
+<h3>Порівняння квартир</h3>
+
+<div class="grid">
+<div>
+<b>Варіант A</b>
+<input id="a_area" placeholder="м²">
+<input id="a_m2" placeholder="ціна м²">
 </div>
 
-<div class="block">
-<label>Термін <span id="yearsVal"></span></label>
-<input type="range" id="years" min="5" max="30" value="20">
+<div>
+<b>Варіант B</b>
+<input id="b_area">
+<input id="b_m2">
 </div>
 
-<!-- ADMIN -->
+<div>
+<b>Варіант C</b>
+<input id="c_area">
+<input id="c_m2">
+</div>
+</div>
 
 <div class="admin" id="adminBox">
-<h3>Адмін налаштування</h3>
-
-<label>База м² (Київ)</label>
-<input type="number" id="baseM2" value="30081">
-
-<label>Коефіцієнт</label>
-<input type="number" id="coef" value="2">
-
-<label>Допуск %</label>
-<input type="number" id="extra" value="10">
-
-<label>Мін внесок %</label>
-<input type="number" id="minDown" value="20">
-
-<label>Ліміт кредиту</label>
-<input type="number" id="cap" value="3000000">
+<h3>Налаштування програми</h3>
+База м² <input id="base" value="30081">
+Коеф <input id="coef" value="2">
+Допуск % <input id="extra" value="10">
+Мін внесок <input id="minDown" value="20">
+Ліміт кредиту <input id="cap" value="3000000">
 </div>
 
 <div class="result" id="out"></div>
@@ -146,77 +96,72 @@ const PIN="1357";
 let usd=38;
 
 function adminLogin(){
- if(prompt("PIN")==PIN){
+ if(prompt("PIN")==PIN)
   document.getElementById("adminBox").style.display="block";
- }
 }
 
 async function loadRate(){
- try{
-  let r=await fetch("https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json");
-  let j=await r.json();
-  usd=j[0].rate;
-  document.getElementById("rateBox").innerHTML="USD НБУ: "+usd.toFixed(2);
-  calc();
- }catch{}
+ let r=await fetch("https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json");
+ let j=await r.json();
+ usd=j[0].rate;
+ rateBox.innerHTML="USD: "+usd.toFixed(2);
+ calc();
 }
 
-const id=x=>document.getElementById(x);
-const fmt=n=>Number(n).toLocaleString("uk-UA");
+const ids=["fam","down","years","rate",
+"a_area","a_m2","b_area","b_m2","c_area","c_m2",
+"base","coef","extra","minDown","cap"];
 
-["fam","area","m2","down","rate","years",
- "baseM2","coef","extra","minDown","cap"]
-.forEach(x=>id(x).oninput=calc);
+ids.forEach(x=>document.getElementById(x).oninput=calc);
+
+function fmt(n){return Number(n).toLocaleString("uk-UA");}
+
+function normArea(f){return f<=2?52.5:52.5+(f-2)*21;}
+
+function calcOption(area,m2){
+ if(!area||!m2) return "";
+ let price=area*m2;
+ let downP=+down.value;
+ let loan=price*(1-downP/100);
+ let mr=rate.value/100/12;
+ let pay=loan*(mr*Math.pow(1+mr,years.value*12))/
+         (Math.pow(1+mr,years.value*12)-1);
+
+ let okArea=area<=maxArea;
+ let okM2=m2<=limitM2;
+ let okPrice=price<=maxPrice;
+ let okLoan=loan<=cap.value;
+ let okDown=downP>=minDown.value;
+
+ let fit=okArea&&okM2&&okPrice&&okLoan&&okDown;
+
+ return `
+ <div>${fit?'✅':'❌'} ${fmt(price)} грн (~$${fmt((price/usd).toFixed(0))})
+ платіж ≈ ${fmt(pay.toFixed(0))}</div>`;
+}
 
 function calc(){
 
- let fam=+id("fam").value;
- let area=+id("area").value;
- let m2=+id("m2").value;
- let downP=+id("down").value;
- let rate=+id("rate").value;
- let years=+id("years").value;
+ f=+fam.value;
+ baseV=+base.value;
+ coefV=+coef.value;
+ extraV=+extra.value/100;
 
- let base=+id("baseM2").value;
- let coef=+id("coef").value;
- let extra=+id("extra").value/100;
- let minDown=+id("minDown").value;
- let cap=+id("cap").value;
+ norm=normArea(f);
+ maxArea=Math.min(norm*(1+extraV),115.5);
+ limitM2=baseV*coefV*(1+extraV);
+ maxPrice=limitM2*norm;
 
- let norm=fam<=2?52.5:52.5+(fam-2)*21;
- let maxArea=Math.min(norm*(1+extra),115.5);
- let limitM2=base*coef*(1+extra);
- let maxPrice=limitM2*norm;
+ out.innerHTML=`
+<b>Ліміти підбору:</b><br>
+Макс площа: ${maxArea.toFixed(1)} м²<br>
+Макс ціна м²: ${fmt(limitM2)}<br>
+Макс ціна квартири: ${fmt(maxPrice.toFixed(0))}<br><hr>
 
- let price=area*m2;
- let downSum=price*downP/100;
- let loan=price-downSum;
-
- let mr=rate/100/12;
- let pay = loan*(mr*Math.pow(1+mr,years*12))/
-          (Math.pow(1+mr,years*12)-1);
-
- let fit = area<=maxArea &&
-           m2<=limitM2 &&
-           price<=maxPrice &&
-           downP>=minDown &&
-           loan<=cap;
-
- id("famVal").innerHTML=fam;
- id("areaVal").innerHTML=area+" м²";
- id("m2Val").innerHTML=fmt(m2);
- id("downVal").innerHTML=downP+"%";
- id("yearsVal").innerHTML=years+" років";
-
- id("out").innerHTML=`
- ${fit?'<div class="ok">✅ Обʼєкт проходить</div>':'<div class="bad">❌ Не проходить</div>'}
- <hr>
- Ціна: ${fmt(price)} грн (~$${fmt((price/usd).toFixed(0))})<br>
- Кредит: ${fmt(loan)} грн<br>
- Платіж: ${fmt(pay.toFixed(0))} грн<br>
- Ліміт м²: ${fmt(limitM2)}<br>
- Макс ціна: ${fmt(maxPrice.toFixed(0))}
- `;
+A: ${calcOption(+a_area.value,+a_m2.value)}
+B: ${calcOption(+b_area.value,+b_m2.value)}
+C: ${calcOption(+c_area.value,+c_m2.value)}
+`;
 }
 
 calc();
