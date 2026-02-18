@@ -28,11 +28,10 @@ body{
  color:var(--text);
  margin:0;
  padding:20px;
- transition:.25s;
 }
 
 .card{
- max-width:760px;
+ max-width:780px;
  margin:auto;
  background:var(--card);
  padding:24px;
@@ -87,7 +86,6 @@ button{
 
 @media print{
  button,.admin{display:none}
- body{background:white}
 }
 </style>
 </head>
@@ -100,24 +98,19 @@ button{
 
 <button onclick="toggleTheme()">🌙/☀️</button>
 <button onclick="loadRate()">Курс НБУ</button>
-<button onclick="adminLogin()">Адмін</button>
+<button onclick="toggleAdmin()">Адмін</button>
 <button onclick="window.print()">PDF</button>
 
 <div id="rateBox"></div>
 
 <div class="block">
+<label>Ціна квартири (грн) <span id="priceVal"></span></label>
+<input type="range" id="price" min="500000" max="10000000" step="50000" value="3900000">
+</div>
+
+<div class="block">
 <label>Склад сімʼї <span id="famVal"></span></label>
 <input type="range" id="fam" min="1" max="6" value="2">
-</div>
-
-<div class="block">
-<label>Площа квартири м² <span id="areaVal"></span></label>
-<input type="range" id="area" min="20" max="150" value="60">
-</div>
-
-<div class="block">
-<label>Ціна за м² <span id="m2Val"></span></label>
-<input type="range" id="m2" min="25000" max="120000" step="1000" value="65000">
 </div>
 
 <div class="block">
@@ -143,10 +136,10 @@ button{
 <div class="admin" id="adminBox">
 <h3>Адмін налаштування</h3>
 
-<label>База м² (Київ)</label>
+<label>База м²</label>
 <input id="baseM2" type="number" value="30081">
 
-<label>Коефіцієнт</label>
+<label>Коеф</label>
 <input id="coef" type="number" value="2">
 
 <label>Допуск %</label>
@@ -155,7 +148,7 @@ button{
 <label>Мін внесок %</label>
 <input id="minDown" type="number" value="20">
 
-<label>Ліміт кредиту банку</label>
+<label>Ліміт кредиту</label>
 <input id="bankCap" type="number" value="3000000">
 
 <button onclick="calc()">Застосувати</button>
@@ -176,9 +169,14 @@ function toggleTheme(){
  document.body.classList.toggle("dark");
 }
 
-function adminLogin(){
- if(prompt("PIN")==PIN){
-  $("adminBox").style.display="block";
+function toggleAdmin(){
+ const box = $("adminBox");
+ if(box.style.display==="block"){
+   box.style.display="none";
+ } else {
+   if(prompt("PIN")==PIN){
+     box.style.display="block";
+   }
  }
 }
 
@@ -193,7 +191,7 @@ async function loadRate(){
 }
 
 [
-"fam","area","m2","down","years","rateSel",
+"price","fam","down","years","rateSel",
 "baseM2","coef","extraPct","minDown","bankCap"
 ].forEach(id => {
  $(id).addEventListener("input", calc);
@@ -202,9 +200,8 @@ async function loadRate(){
 
 function calc(){
 
+ const price = +$("price").value;
  const fam = +$("fam").value;
- const area = +$("area").value;
- const m2 = +$("m2").value;
  const downP = +$("down").value;
  const years = +$("years").value;
  const rate = +$("rateSel").value;
@@ -216,11 +213,9 @@ function calc(){
  const cap = +$("bankCap").value;
 
  const norm = fam<=2 ? 52.5 : 52.5+(fam-2)*21;
- const maxArea = Math.min(norm*(1+extra),115.5);
  const limitM2 = base*coef*(1+extra);
  const maxPrice = limitM2*norm;
 
- const price = area*m2;
  const downSum = price*downP/100;
  const loan = price-downSum;
 
@@ -230,15 +225,12 @@ function calc(){
              (Math.pow(1+mr,months)-1);
 
  const fit =
-  area<=maxArea &&
-  m2<=limitM2 &&
   price<=maxPrice &&
   downP>=minDown &&
   loan<=cap;
 
+ $("priceVal").innerHTML=fmt(price);
  $("famVal").innerHTML=fam;
- $("areaVal").innerHTML=area+" м²";
- $("m2Val").innerHTML=fmt(m2);
  $("downVal").innerHTML=downP+"%";
  $("yearsVal").innerHTML=years+" років";
 
@@ -248,11 +240,10 @@ function calc(){
  Ціна: ${fmt(price)} грн (~$${fmt((price/usd).toFixed(0))})<br>
  Внесок: ${fmt(downSum)} грн<br>
  Кредит: ${fmt(loan)} грн<br>
- Щомісячний платіж: <b>${fmt(pay.toFixed(0))} грн</b><br>
+ Платіж ≈ ${fmt(pay.toFixed(0))} грн<br>
  <hr>
- Ліміт м²: ${fmt(limitM2)} грн<br>
- Макс площа: ${maxArea.toFixed(1)} м²<br>
- Макс ціна квартири: ${fmt(maxPrice.toFixed(0))} грн
+ Макс допустима ціна: ${fmt(maxPrice.toFixed(0))} грн<br>
+ Ліміт кредиту: ${fmt(cap)} грн
  `;
 }
 
