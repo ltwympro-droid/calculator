@@ -110,16 +110,15 @@ body.dark .admin{
 <h2>єОселя / USL калькулятор</h2>
 
 <button onclick="toggleTheme()">🌙/☀️</button>
-<button onclick="loadRate()">Курс НБУ</button>
+<button onclick="updateRate()">Оновити курс НБУ</button>
 <button onclick="toggleAdmin()">Адмін</button>
 <button onclick="window.print()">PDF</button>
 
-<div id="rateBox"></div>
+<div id="rateBox">USD: 38.00</div>
 
 <div class="grid">
 
 <div>
-
 <div class="field">
 <label>Загальна ціна (грн) <span id="priceVal"></span></label>
 <input type="range" id="price" min="500000" max="7000000" step="50000" value="4000000">
@@ -134,11 +133,9 @@ body.dark .admin{
 <label>Склад сімʼї <span id="famVal"></span></label>
 <input type="range" id="fam" min="1" max="6" value="2">
 </div>
-
 </div>
 
 <div>
-
 <div class="field">
 <label>Перший внесок % <span id="downVal"></span></label>
 <input type="range" id="down" min="10" max="80" value="25">
@@ -161,7 +158,6 @@ body.dark .admin{
 <label>Термін (років) <span id="yearsVal"></span></label>
 <input type="range" id="years" min="5" max="30" value="20">
 </div>
-
 </div>
 
 </div>
@@ -169,16 +165,16 @@ body.dark .admin{
 <div class="admin" id="adminBox">
 <h3>Налаштування програми</h3>
 
-<label>Базова опосередкована вартість м²</label>
+<label>Базова вартість м²</label>
 <input type="number" id="baseM2" value="30081">
 
-<label>Коефіцієнт програми</label>
+<label>Коефіцієнт</label>
 <input type="number" id="coef" value="2">
 
 <label>Допуск %</label>
 <input type="number" id="extraPct" value="10">
 
-<label>Мінімальний перший внесок (%)</label>
+<label>Мінімальний внесок (%)</label>
 <input type="number" id="minDown" value="20">
 
 <label>Ліміт програми (грн)</label>
@@ -212,14 +208,17 @@ function toggleAdmin(){
  }
 }
 
-async function loadRate(){
+async function updateRate(){
+ $("rateBox").innerHTML="Оновлення...";
  try{
   const r=await fetch("https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json");
   const j=await r.json();
   usd=j[0].rate;
-  $("rateBox").innerHTML="USD НБУ: "+usd.toFixed(2);
+  $("rateBox").innerHTML="USD: "+usd.toFixed(2);
   calc();
- }catch{}
+ }catch{
+  $("rateBox").innerHTML="Помилка оновлення";
+ }
 }
 
 [
@@ -247,7 +246,7 @@ function calc(){
 
  const norm=fam<=2?52.5:52.5+(fam-2)*21;
  const limitM2=base*coef*(1+extra);
- const maxPriceByFormula=limitM2*norm;
+ const maxPrice=limitM2*norm;
 
  const downSum=price*downP/100;
  const loan=price-downSum;
@@ -257,25 +256,23 @@ function calc(){
            (Math.pow(1+mr,years*12)-1);
 
  let reasons=[];
+ let advice="";
 
- if(area>norm){
-  reasons.push("Площа перевищує норматив ("+norm+" м²).");
+ if(loan>cap || loan>PROGRAM_LIMIT){
+   const maxLoan=Math.min(cap,PROGRAM_LIMIT);
+   const neededDown=price-maxLoan;
+   if(neededDown>downSum){
+     const add=neededDown-downSum;
+     advice=`Щоб пройти, потрібно збільшити перший внесок приблизно на ${fmt(add)} грн (мінімальний внесок ≈ ${fmt(neededDown)} грн).`;
+   }
  }
- if(price>maxPriceByFormula){
-  reasons.push("Ціна перевищує допустиму по формулі програми.");
- }
- if(price>PROGRAM_LIMIT){
-  reasons.push("Ціна перевищує ліміт програми.");
- }
- if(loan>PROGRAM_LIMIT){
-  reasons.push("Сума кредиту перевищує ліміт програми.");
- }
- if(loan>cap){
-  reasons.push("Банк не видає таку суму.");
- }
- if(downP<minDown){
-  reasons.push("Перший внесок менший за мінімальний ("+minDown+"%).");
- }
+
+ if(area>norm) reasons.push("Площа перевищує норматив.");
+ if(price>maxPrice) reasons.push("Ціна перевищує допустиму по формулі.");
+ if(price>PROGRAM_LIMIT) reasons.push("Ціна перевищує ліміт програми.");
+ if(loan>PROGRAM_LIMIT) reasons.push("Кредит перевищує ліміт програми.");
+ if(loan>cap) reasons.push("Банк не видає таку суму.");
+ if(downP<minDown) reasons.push("Перший внесок менший за мінімальний.");
 
  const fit=reasons.length===0;
 
@@ -291,16 +288,15 @@ function calc(){
  ${fit?'✅ Клієнт проходить':'❌ Клієнт не проходить'}
  </div>
 
- <strong>Фінансовий розрахунок:</strong><br><br>
-
- Ціна квартири: ${fmt(price)} грн (~$${fmt((price/usd).toFixed(0))})<br>
+ Ціна: ${fmt(price)} грн (~$${fmt((price/usd).toFixed(0))})<br>
  Перший внесок: <strong>${downP}%</strong> (${fmt(downSum)} грн)<br>
- Сума кредиту: ${fmt(loan)} грн<br>
- Щомісячний платіж: <strong>${fmt(pay.toFixed(0))} грн</strong><br><br>
+ Кредит: ${fmt(loan)} грн<br>
+ Платіж ≈ <strong>${fmt(pay.toFixed(0))} грн</strong><br><br>
 
  ${!fit?`
  <strong>Причини:</strong><br>
- ${reasons.map(r=>"• "+r).join("<br>")}
+ ${reasons.map(r=>"• "+r).join("<br>")}<br><br>
+ ${advice?`<strong>Рекомендація:</strong><br>${advice}`:""}
  `:""}
  `;
 }
