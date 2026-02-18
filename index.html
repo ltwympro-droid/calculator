@@ -2,330 +2,171 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<title>єОселя / USL калькулятор</title>
+<title>єОселя калькулятор</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
-:root{
- --bg:#f4f6f9;
- --card:#ffffff;
- --text:#1b1f24;
- --accent:#2563eb;
- --accent-soft:#eaf1ff;
- --danger:#dc2626;
- --success:#16a34a;
- --border:#e5e7eb;
-}
-body.dark{
- --bg:#0f172a;
- --card:#1e293b;
- --text:#f1f5f9;
- --accent:#3b82f6;
- --accent-soft:#1e3a8a;
- --border:#334155;
-}
-body{
- font-family:-apple-system,BlinkMacSystemFont,sans-serif;
- background:var(--bg);
- color:var(--text);
- margin:0;
- padding:24px;
-}
-.container{max-width:1000px;margin:auto;}
-.card{
- background:var(--card);
- border-radius:16px;
- padding:24px;
- border:1px solid var(--border);
- box-shadow:0 10px 25px rgba(0,0,0,.05);
-}
-.grid{
- display:grid;
- grid-template-columns:1fr 1fr;
- gap:20px;
-}
-@media(max-width:768px){
- .grid{grid-template-columns:1fr;}
-}
-.field{margin-bottom:18px;}
-label{
- font-weight:600;
- display:flex;
- justify-content:space-between;
- margin-bottom:6px;
- font-size:14px;
-}
-input,select{
- width:100%;
- padding:10px;
- border-radius:8px;
- border:1px solid var(--border);
- font-size:14px;
- background:transparent;
- color:var(--text);
-}
-input[type=range]{padding:0;}
-.result{
- margin-top:24px;
- padding:20px;
- border-radius:12px;
- background:var(--accent-soft);
-}
-.status{
- font-weight:700;
- font-size:16px;
- margin-bottom:10px;
-}
-.success{color:var(--success);}
-.error{color:var(--danger);}
-button{
- padding:10px 16px;
- border:none;
- border-radius:10px;
- background:var(--accent);
- color:white;
- font-weight:600;
- cursor:pointer;
- margin-right:8px;
- margin-bottom:10px;
-}
-.admin{
- margin-top:20px;
- padding:20px;
- border-radius:12px;
- background:#fff7ed;
- display:none;
-}
-body.dark .admin{
- background:#3f2d16;
-}
+body{font-family:Arial;padding:20px;background:#f4f6f9;}
+.card{background:white;padding:20px;border-radius:12px;max-width:900px;margin:auto;}
+.field{margin-bottom:15px;}
+label{font-weight:bold;}
+input,select{width:100%;padding:8px;margin-top:4px;}
+button{padding:10px 15px;margin:5px 0;border:none;background:#2563eb;color:white;border-radius:6px;cursor:pointer;}
+.result{margin-top:20px;padding:15px;background:#eef2ff;border-radius:8px;}
 </style>
 </head>
 
 <body>
 
-<div class="container">
 <div class="card">
 
-<h2>єОселя / USL калькулятор</h2>
+<h2>єОселя калькулятор</h2>
 
-<button onclick="toggleTheme()">🌙/☀️</button>
-<button onclick="updateRate()">Оновити курс НБУ</button>
-<button onclick="toggleAdmin()">Адмін</button>
-<button onclick="window.print()">PDF</button>
-
-<div id="rateBox">USD: 38.00</div>
-
-<div class="grid">
-
-<div>
 <div class="field">
-<label>Загальна ціна (грн) <span id="priceVal"></span></label>
-<input type="range" id="price" min="500000" max="7000000" step="50000" value="4000000">
+<label>Ціна квартири</label>
+<input type="number" id="price" value="4000000">
 </div>
 
 <div class="field">
-<label>Площа (м²) <span id="areaVal"></span></label>
-<input type="range" id="area" min="20" max="150" value="60">
+<label>Перший внесок (%)</label>
+<input type="number" id="down" value="25">
 </div>
 
 <div class="field">
-<label>Склад сімʼї <span id="famVal"></span></label>
-<input type="range" id="fam" min="1" max="6" value="2">
-</div>
-</div>
-
-<div>
-<div class="field">
-<label>Перший внесок % <span id="downVal"></span></label>
-<input type="range" id="down" min="10" max="80" value="25">
-</div>
-
-<div class="field">
-<label>Максимальна видача банку (грн) <span id="capVal"></span></label>
-<input type="range" id="bankCap" min="1000000" max="7000000" step="100000" value="5000000">
+<label>Термін (років)</label>
+<input type="number" id="years" value="20">
 </div>
 
 <div class="field">
 <label>Ставка</label>
-<select id="rateSel">
+<select id="rate">
 <option value="3">3%</option>
 <option value="7">7%</option>
 </select>
 </div>
 
-<div class="field">
-<label>Термін (років) <span id="yearsVal"></span></label>
-<input type="range" id="years" min="5" max="30" value="20">
-</div>
-</div>
+<button onclick="calculate()">Розрахувати</button>
+<button onclick="generatePDF()">Завантажити PDF</button>
 
-</div>
+<div class="result" id="output"></div>
 
-<div class="admin" id="adminBox">
-<h3>Налаштування програми</h3>
+<canvas id="chart" style="margin-top:20px;"></canvas>
 
-<label>Базова вартість м²</label>
-<input type="number" id="baseM2" value="30081">
-
-<label>Коефіцієнт</label>
-<input type="number" id="coef" value="2">
-
-<label>Допуск %</label>
-<input type="number" id="extraPct" value="10">
-
-<label>Мінімальний внесок (%)</label>
-<input type="number" id="minDown" value="20">
-
-<label>Ліміт програми (грн)</label>
-<input type="number" id="programLimit" value="5000000">
-
-<button onclick="calc()">Застосувати</button>
-</div>
-
-<div class="result" id="out"></div>
-
-</div>
 </div>
 
 <script>
-const PIN="1357";
-let usd=38;
 
-const $=id=>document.getElementById(id);
-const fmt=n=>Number(n).toLocaleString("uk-UA");
+let payment1=0;
+let payment2=0;
+let totalPaid=0;
+let overpayment=0;
+let loan=0;
+let months=0;
+let firstPeriod=0;
+let rateBase=0;
+let rateAfter=0;
+let chart;
 
-function toggleTheme(){document.body.classList.toggle("dark");}
-
-function toggleAdmin(){
- const box=$("adminBox");
- if(box.style.display==="block"){
-   box.style.display="none";
- } else {
-   if(prompt("PIN")==PIN){
-     box.style.display="block";
-   }
- }
-}
-
-async function updateRate(){
- $("rateBox").innerHTML="Оновлення...";
- try{
-  const r=await fetch("https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json");
-  const j=await r.json();
-  usd=j[0].rate;
-  $("rateBox").innerHTML="USD: "+usd.toFixed(2);
-  calc();
- }catch{
-  $("rateBox").innerHTML="Помилка оновлення";
- }
-}
-
-[
-"price","area","fam","down","years","rateSel","bankCap",
-"baseM2","coef","extraPct","minDown","programLimit"
-].forEach(id=>{
- $(id).addEventListener("input",calc);
-});
-
-function annuityPayment(sum, rate, months){
- const r=rate/100/12;
+function annuity(sum,rate,months){
+ let r=rate/100/12;
  return sum*(r*Math.pow(1+r,months))/(Math.pow(1+r,months)-1);
 }
 
-function remainingBalance(sum, rate, monthsPaid, totalMonths){
- const r=rate/100/12;
- const payment=annuityPayment(sum,rate,totalMonths);
- return sum*Math.pow(1+r,monthsPaid) -
-        payment*((Math.pow(1+r,monthsPaid)-1)/r);
+function remaining(sum,rate,paid,total){
+ let r=rate/100/12;
+ let p=annuity(sum,rate,total);
+ return sum*Math.pow(1+r,paid)-p*((Math.pow(1+r,paid)-1)/r);
 }
 
-function calc(){
+function calculate(){
 
- const price=+$("price").value;
- const area=+$("area").value;
- const fam=+$("fam").value;
- const downP=+$("down").value;
- const years=+$("years").value;
- const rateBase=+$("rateSel").value;
- const cap=+$("bankCap").value;
+ let price=+document.getElementById("price").value;
+ let downP=+document.getElementById("down").value;
+ let years=+document.getElementById("years").value;
+ rateBase=+document.getElementById("rate").value;
 
- const base=+$("baseM2").value;
- const coef=+$("coef").value;
- const extra=+$("extraPct").value/100;
- const minDown=+$("minDown").value;
- const PROGRAM_LIMIT=+$("programLimit").value;
+ loan=price*(1-downP/100);
+ months=years*12;
+ firstPeriod=Math.min(120,months);
+ rateAfter=rateBase==3?6:10;
 
- const norm=fam<=2?52.5:52.5+(fam-2)*21;
- const limitM2=base*coef*(1+extra);
- const maxPrice=limitM2*norm;
+ payment1=annuity(loan,rateBase,months);
+ let balance=remaining(loan,rateBase,firstPeriod,months);
 
- const downSum=price*downP/100;
- const loan=price-downSum;
-
- const totalMonths=years*12;
- const firstPeriodMonths=Math.min(120,totalMonths);
-
- let rateAfter = rateBase==3 ? 6 : 10;
-
- const payment1=annuityPayment(loan,rateBase,totalMonths);
- const balanceAfter10=remainingBalance(loan,rateBase,firstPeriodMonths,totalMonths);
-
- let payment2=0;
- if(totalMonths>120){
-   const remainingMonths=totalMonths-120;
-   payment2=annuityPayment(balanceAfter10,rateAfter,remainingMonths);
+ if(months>120){
+  payment2=annuity(balance,rateAfter,months-120);
+ } else {
+  payment2=0;
  }
 
- let reasons=[];
- let advice="";
+ totalPaid=payment1*firstPeriod+payment2*Math.max(0,months-120);
+ overpayment=totalPaid-loan;
 
- if(loan>cap || loan>PROGRAM_LIMIT){
-   const maxLoan=Math.min(cap,PROGRAM_LIMIT);
-   const neededDown=price-maxLoan;
-   if(neededDown>downSum){
-     const add=neededDown-downSum;
-     advice=`Щоб пройти, потрібно збільшити внесок приблизно на ${fmt(add)} грн.`;
-   }
- }
-
- if(area>norm) reasons.push("Площа перевищує норматив.");
- if(price>maxPrice) reasons.push("Ціна перевищує допустиму по формулі.");
- if(price>PROGRAM_LIMIT) reasons.push("Ціна перевищує ліміт програми.");
- if(loan>PROGRAM_LIMIT) reasons.push("Кредит перевищує ліміт програми.");
- if(loan>cap) reasons.push("Банк не видає таку суму.");
- if(downP<minDown) reasons.push("Перший внесок менший за мінімальний.");
-
- const fit=reasons.length===0;
-
- $("priceVal").innerHTML=fmt(price);
- $("areaVal").innerHTML=area+" м²";
- $("famVal").innerHTML=fam;
- $("downVal").innerHTML=downP+"%";
- $("yearsVal").innerHTML=years+" років";
- $("capVal").innerHTML=fmt(cap);
-
- $("out").innerHTML=`
- <div class="status ${fit?'success':'error'}">
- ${fit?'✅ Клієнт проходить':'❌ Клієнт не проходить'}
- </div>
-
- Ціна: ${fmt(price)} грн (~$${fmt((price/usd).toFixed(0))})<br>
- Перший внесок: <strong>${downP}%</strong> (${fmt(downSum)} грн)<br>
- Сума кредиту: ${fmt(loan)} грн<br><br>
-
- <strong>Платіж перші 10 років:</strong> ${fmt(payment1.toFixed(0))} грн<br>
- ${totalMonths>120?`
- <strong>Платіж з 11-го року:</strong> ${fmt(payment2.toFixed(0))} грн<br>
- `:""}
- <br>
-
- ${!fit?`
- <strong>Причини:</strong><br>
- ${reasons.map(r=>"• "+r).join("<br>")}<br><br>
- ${advice?`<strong>Рекомендація:</strong><br>${advice}`:""}
- `:""}
+ document.getElementById("output").innerHTML=
+ `
+ Сума кредиту: ${loan.toLocaleString()} грн<br>
+ Платіж перші 10 років: ${payment1.toFixed(0)} грн<br>
+ Платіж з 11-го року: ${payment2.toFixed(0)} грн<br>
+ Загальна сума виплат: ${totalPaid.toFixed(0)} грн<br>
+ Переплата: ${overpayment.toFixed(0)} грн
  `;
+
+ drawChart();
 }
 
-calc();
+function drawChart(){
+
+ let data=[];
+ for(let i=0;i<months;i++){
+  if(i<120) data.push(payment1);
+  else data.push(payment2);
+ }
+
+ if(chart) chart.destroy();
+
+ chart=new Chart(document.getElementById("chart"),{
+  type:"line",
+  data:{
+   labels:data.map((_,i)=>i+1),
+   datasets:[{
+    label:"Щомісячний платіж",
+    data:data,
+    borderColor:"#2563eb",
+    fill:false
+   }]
+  }
+ });
+}
+
+async function generatePDF(){
+
+ const { jsPDF } = window.jspdf;
+ let doc=new jsPDF();
+
+ doc.setFontSize(16);
+ doc.text("Звіт по програмі єОселя",20,20);
+
+ doc.setFontSize(12);
+ doc.text(`Сума кредиту: ${loan.toFixed(0)} грн`,20,40);
+ doc.text(`Платіж перші 10 років: ${payment1.toFixed(0)} грн`,20,50);
+ doc.text(`Платіж з 11-го року: ${payment2.toFixed(0)} грн`,20,60);
+ doc.text(`Загальна сума виплат: ${totalPaid.toFixed(0)} грн`,20,70);
+ doc.text(`Переплата: ${overpayment.toFixed(0)} грн`,20,80);
+
+ let canvas=document.getElementById("chart");
+ let img=canvas.toDataURL("image/png",1.0);
+
+ doc.addImage(img,"PNG",15,90,180,80);
+
+ doc.save("YeOselia_Report.pdf");
+}
+
+calculate();
+
+</script>
+
+</body>
+</html>
