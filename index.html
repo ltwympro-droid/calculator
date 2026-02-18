@@ -7,116 +7,179 @@
 
 <style>
 :root{
- --bg:#f2f4f8;
+ --bg:#f4f6f9;
  --card:#ffffff;
- --text:#1a1a1a;
- --accent:#0a84ff;
- --soft:#eef3ff;
+ --text:#1b1f24;
+ --accent:#2563eb;
+ --accent-soft:#eaf1ff;
+ --danger:#dc2626;
+ --success:#16a34a;
+ --border:#e5e7eb;
 }
+
 body.dark{
- --bg:#0f1720;
- --card:#18222d;
- --text:#e6edf3;
- --accent:#3aa0ff;
- --soft:#1e2b3a;
+ --bg:#0f172a;
+ --card:#1e293b;
+ --text:#f1f5f9;
+ --accent:#3b82f6;
+ --accent-soft:#1e3a8a;
+ --border:#334155;
 }
+
 body{
- font-family:Arial;
+ font-family: -apple-system, BlinkMacSystemFont, sans-serif;
  background:var(--bg);
  color:var(--text);
  margin:0;
- padding:20px;
-}
-.card{
- max-width:760px;
- margin:auto;
- background:var(--card);
  padding:24px;
- border-radius:14px;
- box-shadow:0 10px 30px rgba(0,0,0,.08);
+ transition:.2s ease;
 }
-.block{margin-top:16px}
+
+.container{
+ max-width:900px;
+ margin:auto;
+}
+
+.card{
+ background:var(--card);
+ border-radius:16px;
+ padding:24px;
+ box-shadow:0 10px 25px rgba(0,0,0,.05);
+ border:1px solid var(--border);
+}
+
+h2{
+ margin-top:0;
+}
+
+.grid{
+ display:grid;
+ grid-template-columns:1fr 1fr;
+ gap:20px;
+}
+
+@media(max-width:768px){
+ .grid{grid-template-columns:1fr;}
+}
+
+.field{
+ margin-bottom:18px;
+}
+
 label{
- font-weight:bold;
+ font-weight:600;
+ font-size:14px;
  display:flex;
  justify-content:space-between;
+ margin-bottom:6px;
 }
+
 input,select{
  width:100%;
- padding:8px;
- margin-top:6px;
-}
-input[type=range]{padding:0}
-.result{
- margin-top:22px;
- background:var(--soft);
- padding:16px;
- border-radius:10px;
- font-size:15px;
-}
-.ok{color:#0a7a2f;font-weight:bold}
-.bad{color:#c40000;font-weight:bold}
-button{
- padding:10px 14px;
- border:none;
+ padding:10px;
  border-radius:8px;
+ border:1px solid var(--border);
+ font-size:14px;
+ background:transparent;
+ color:var(--text);
+}
+
+input[type=range]{
+ padding:0;
+}
+
+.result{
+ margin-top:24px;
+ padding:20px;
+ border-radius:12px;
+ background:var(--accent-soft);
+}
+
+.status{
+ font-weight:700;
+ font-size:16px;
+ margin-bottom:10px;
+}
+
+.success{color:var(--success);}
+.error{color:var(--danger);}
+
+.buttons{
+ margin-bottom:20px;
+}
+
+button{
+ padding:10px 16px;
+ border:none;
+ border-radius:10px;
  background:var(--accent);
  color:white;
+ font-weight:600;
  cursor:pointer;
- margin:4px 4px 0 0;
+ margin-right:8px;
 }
+
 .admin{
- background:#fff4e5;
- padding:14px;
- border-radius:10px;
  margin-top:20px;
+ padding:20px;
+ border-radius:12px;
+ background:#fff7ed;
  display:none;
 }
-@media print{
- button,.admin{display:none}
+body.dark .admin{
+ background:#3f2d16;
 }
 </style>
 </head>
 
 <body>
 
+<div class="container">
+
 <div class="card">
 
 <h2>єОселя / USL калькулятор</h2>
 
+<div class="buttons">
 <button onclick="toggleTheme()">🌙/☀️</button>
 <button onclick="loadRate()">Курс НБУ</button>
 <button onclick="toggleAdmin()">Адмін</button>
 <button onclick="window.print()">PDF</button>
+</div>
 
 <div id="rateBox"></div>
 
-<div class="block">
-<label>Загальна ціна квартири (грн) <span id="priceVal"></span></label>
-<input type="range" id="price" min="500000" max="10000000" step="50000" value="3900000">
+<div class="grid">
+
+<div>
+<div class="field">
+<label>Загальна ціна (грн) <span id="priceVal"></span></label>
+<input type="range" id="price" min="500000" max="10000000" step="50000" value="4000000">
 </div>
 
-<div class="block">
-<label>Площа квартири м² <span id="areaVal"></span></label>
+<div class="field">
+<label>Площа (м²) <span id="areaVal"></span></label>
 <input type="range" id="area" min="20" max="150" value="60">
 </div>
 
-<div class="block">
+<div class="field">
 <label>Склад сімʼї <span id="famVal"></span></label>
 <input type="range" id="fam" min="1" max="6" value="2">
 </div>
+</div>
 
-<div class="block">
+<div>
+<div class="field">
 <label>Перший внесок % <span id="downVal"></span></label>
 <input type="range" id="down" min="10" max="80" value="25">
 </div>
 
-<div class="block">
+<div class="field">
 <label>Ліміт кредиту банку (грн)</label>
-<input type="number" id="bankCap" value="3000000">
+<input type="number" id="bankCap" value="5000000">
 </div>
 
-<div class="block">
+<div class="field">
 <label>Ставка</label>
 <select id="rateSel">
 <option value="3">3%</option>
@@ -124,12 +187,13 @@ button{
 </select>
 </div>
 
-<div class="block">
-<label>Термін років <span id="yearsVal"></span></label>
+<div class="field">
+<label>Термін (років) <span id="yearsVal"></span></label>
 <input type="range" id="years" min="5" max="30" value="20">
 </div>
+</div>
 
-<!-- ADMIN -->
+</div>
 
 <div class="admin" id="adminBox">
 <h3>Налаштування програми</h3>
@@ -152,23 +216,23 @@ button{
 <div class="result" id="out"></div>
 
 </div>
+</div>
 
 <script>
+const PROGRAM_LIMIT = 5000000;
 const PIN="1357";
 let usd=38;
 
-const $ = id => document.getElementById(id);
-const fmt = n => Number(n).toLocaleString("uk-UA");
+const $=id=>document.getElementById(id);
+const fmt=n=>Number(n).toLocaleString("uk-UA");
 
-function toggleTheme(){
- document.body.classList.toggle("dark");
-}
+function toggleTheme(){document.body.classList.toggle("dark");}
 
 function toggleAdmin(){
- const box = $("adminBox");
+ const box=$("adminBox");
  if(box.style.display==="block"){
    box.style.display="none";
- } else {
+ }else{
    if(prompt("PIN")==PIN){
      box.style.display="block";
    }
@@ -177,9 +241,9 @@ function toggleAdmin(){
 
 async function loadRate(){
  try{
-  const r = await fetch("https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json");
-  const j = await r.json();
-  usd = j[0].rate;
+  const r=await fetch("https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json");
+  const j=await r.json();
+  usd=j[0].rate;
   $("rateBox").innerHTML="USD НБУ: "+usd.toFixed(2);
   calc();
  }catch{}
@@ -188,45 +252,44 @@ async function loadRate(){
 [
 "price","area","fam","down","years","rateSel",
 "baseM2","coef","extraPct","minDown","bankCap"
-].forEach(id => {
- $(id).addEventListener("input", calc);
- $(id).addEventListener("change", calc);
+].forEach(id=>{
+ $(id).addEventListener("input",calc);
+ $(id).addEventListener("change",calc);
 });
 
 function calc(){
 
- const price = +$("price").value;
- const area = +$("area").value;
- const fam = +$("fam").value;
- const downP = +$("down").value;
- const years = +$("years").value;
- const rate = +$("rateSel").value;
- const cap = +$("bankCap").value;
+ const price=+$("price").value;
+ const area=+$("area").value;
+ const fam=+$("fam").value;
+ const downP=+$("down").value;
+ const years=+$("years").value;
+ const rate=+$("rateSel").value;
+ const cap=+$("bankCap").value;
 
- const base = +$("baseM2").value;
- const coef = +$("coef").value;
- const extra = +$("extraPct").value/100;
- const minDown = +$("minDown").value;
+ const base=+$("baseM2").value;
+ const coef=+$("coef").value;
+ const extra=+$("extraPct").value/100;
+ const minDown=+$("minDown").value;
 
- const normArea = fam<=2 ? 52.5 : 52.5+(fam-2)*21;
- const maxArea = Math.min(normArea*(1+extra),115.5);
+ const norm=fam<=2?52.5:52.5+(fam-2)*21;
+ const maxArea=Math.min(norm*(1+extra),115.5);
+ const limitM2=base*coef*(1+extra);
+ const maxPrice=limitM2*norm;
 
- const limitM2 = base*coef*(1+extra);
- const maxPrice = limitM2*normArea;
+ const downSum=price*downP/100;
+ const loan=price-downSum;
 
- const downSum = price*downP/100;
- const loan = price-downSum;
+ const mr=rate/100/12;
+ const pay=loan*(mr*Math.pow(1+mr,years*12))/
+           (Math.pow(1+mr,years*12)-1);
 
- const mr = rate/100/12;
- const months = years*12;
- const pay = loan*(mr*Math.pow(1+mr,months))/
-             (Math.pow(1+mr,months)-1);
-
- const fit =
+ const fit=
   price<=maxPrice &&
   area<=maxArea &&
   downP>=minDown &&
-  loan<=cap;
+  loan<=cap &&
+  loan<=PROGRAM_LIMIT;
 
  $("priceVal").innerHTML=fmt(price);
  $("areaVal").innerHTML=area+" м²";
@@ -235,17 +298,20 @@ function calc(){
  $("yearsVal").innerHTML=years+" років";
 
  $("out").innerHTML=`
- ${fit?'<div class="ok">✅ Проходить під єОселя</div>':'<div class="bad">❌ Не проходить</div>'}
- <hr>
+ <div class="status ${fit?'success':'error'}">
+ ${fit?'✅ Клієнт проходить':'❌ Клієнт не проходить'}
+ </div>
+
+ <strong>Розрахунок:</strong><br><br>
+
  Ціна: ${fmt(price)} грн (~$${fmt((price/usd).toFixed(0))})<br>
- Внесок: ${fmt(downSum)} грн<br>
- Кредит: ${fmt(loan)} грн<br>
- Щомісячний платіж: <b>${fmt(pay.toFixed(0))} грн</b><br>
- <hr>
- Норматив площі: ${normArea.toFixed(1)} м²<br>
- Макс допустима площа: ${maxArea.toFixed(1)} м²<br>
- Макс допустима ціна: ${fmt(maxPrice.toFixed(0))} грн<br>
- Ліміт кредиту банку: ${fmt(cap)} грн
+ Перший внесок: ${fmt(downSum)} грн<br>
+ Сума кредиту: ${fmt(loan)} грн<br>
+ Щомісячний платіж: <strong>${fmt(pay.toFixed(0))} грн</strong><br><br>
+
+ Максимальна допустима ціна: ${fmt(maxPrice.toFixed(0))} грн<br>
+ Норматив площі: ${norm.toFixed(1)} м²<br>
+ Ліміт програми: ${fmt(PROGRAM_LIMIT)} грн
  `;
 }
 
