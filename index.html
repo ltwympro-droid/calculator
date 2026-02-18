@@ -5,9 +5,6 @@
 <title>єОселя / USL калькулятор</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
-
 <style>
 :root{
  --bg:#f4f6f9;
@@ -115,7 +112,7 @@ body.dark .admin{
 <button onclick="toggleTheme()">🌙/☀️</button>
 <button onclick="updateRate()">Оновити курс НБУ</button>
 <button onclick="toggleAdmin()">Адмін</button>
-<button onclick="generatePDF()">Повний звіт PDF</button>
+<button onclick="window.print()">PDF</button>
 
 <div id="rateBox">USD: 38.00</div>
 
@@ -234,76 +231,74 @@ async function updateRate(){
 function calc(){
 
  const price=+$("price").value;
+ const area=+$("area").value;
+ const fam=+$("fam").value;
  const downP=+$("down").value;
  const years=+$("years").value;
  const rate=+$("rateSel").value;
+ const cap=+$("bankCap").value;
 
- const loan=price*(1-downP/100);
- const monthlyRate=rate/100/12;
- const months=years*12;
+ const base=+$("baseM2").value;
+ const coef=+$("coef").value;
+ const extra=+$("extraPct").value/100;
+ const minDown=+$("minDown").value;
+ const PROGRAM_LIMIT=+$("programLimit").value;
 
- const payment=loan*(monthlyRate*Math.pow(1+monthlyRate,months))/
-               (Math.pow(1+monthlyRate,months)-1);
+ const norm=fam<=2?52.5:52.5+(fam-2)*21;
+ const limitM2=base*coef*(1+extra);
+ const maxPrice=limitM2*norm;
 
- $("out").innerHTML=`
- Сума кредиту: ${fmt(loan)} грн<br>
- Щомісячний платіж: ${fmt(payment.toFixed(0))} грн
- `;
-}
+ const downSum=price*downP/100;
+ const loan=price-downSum;
 
-async function generatePDF(){
+ const mr=rate/100/12;
+ const pay=loan*(mr*Math.pow(1+mr,years*12))/
+           (Math.pow(1+mr,years*12)-1);
 
- const { jsPDF } = window.jspdf;
- const doc = new jsPDF();
+ let reasons=[];
+ let advice="";
 
- const price=+$("price").value;
- const downP=+$("down").value;
- const years=+$("years").value;
- const rate=+$("rateSel").value;
-
- const loan=price*(1-downP/100);
- const months=years*12;
- const monthlyRate=rate/100/12;
-
- const payment=loan*(monthlyRate*Math.pow(1+monthlyRate,months))/
-               (Math.pow(1+monthlyRate,months)-1);
-
- let balance=loan;
- let table=[];
-
- for(let m=1;m<=months;m++){
-   const interest=balance*monthlyRate;
-   const principal=payment-interest;
-   balance-=principal;
-   if(balance<0) balance=0;
-
-   table.push([
-     m,
-     payment.toFixed(0),
-     interest.toFixed(0),
-     principal.toFixed(0),
-     balance.toFixed(0)
-   ]);
+ if(loan>cap || loan>PROGRAM_LIMIT){
+   const maxLoan=Math.min(cap,PROGRAM_LIMIT);
+   const neededDown=price-maxLoan;
+   if(neededDown>downSum){
+     const add=neededDown-downSum;
+     advice=`Щоб пройти, потрібно збільшити перший внесок приблизно на ${fmt(add)} грн (мінімальний внесок ≈ ${fmt(neededDown)} грн).`;
+   }
  }
 
- const totalPaid=payment*months;
- const overpayment=totalPaid-loan;
+ if(area>norm) reasons.push("Площа перевищує норматив.");
+ if(price>maxPrice) reasons.push("Ціна перевищує допустиму по формулі.");
+ if(price>PROGRAM_LIMIT) reasons.push("Ціна перевищує ліміт програми.");
+ if(loan>PROGRAM_LIMIT) reasons.push("Кредит перевищує ліміт програми.");
+ if(loan>cap) reasons.push("Банк не видає таку суму.");
+ if(downP<minDown) reasons.push("Перший внесок менший за мінімальний.");
 
- doc.text("Звіт по програмі єОселя",14,20);
- doc.text(`Сума кредиту: ${fmt(loan)} грн`,14,35);
- doc.text(`Ставка: ${rate}%`,14,45);
- doc.text(`Щомісячний платіж: ${fmt(payment.toFixed(0))} грн`,14,55);
- doc.text(`Переплата: ${fmt(overpayment.toFixed(0))} грн`,14,65);
+ const fit=reasons.length===0;
 
- doc.addPage();
+ $("priceVal").innerHTML=fmt(price);
+ $("areaVal").innerHTML=area+" м²";
+ $("famVal").innerHTML=fam;
+ $("downVal").innerHTML=downP+"%";
+ $("yearsVal").innerHTML=years+" років";
+ $("capVal").innerHTML=fmt(cap);
 
- doc.autoTable({
-   head:[["Місяць","Платіж","Відсотки","Тіло","Залишок"]],
-   body:table,
-   styles:{fontSize:8}
- });
+ $("out").innerHTML=`
+ <div class="status ${fit?'success':'error'}">
+ ${fit?'✅ Клієнт проходить':'❌ Клієнт не проходить'}
+ </div>
 
- doc.save("YeOselia_Full_Report.pdf");
+ Ціна: ${fmt(price)} грн (~$${fmt((price/usd).toFixed(0))})<br>
+ Перший внесок: <strong>${downP}%</strong> (${fmt(downSum)} грн)<br>
+ Кредит: ${fmt(loan)} грн<br>
+ Платіж ≈ <strong>${fmt(pay.toFixed(0))} грн</strong><br><br>
+
+ ${!fit?`
+ <strong>Причини:</strong><br>
+ ${reasons.map(r=>"• "+r).join("<br>")}<br><br>
+ ${advice?`<strong>Рекомендація:</strong><br>${advice}`:""}
+ `:""}
+ `;
 }
 
 calc();
