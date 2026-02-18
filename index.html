@@ -166,8 +166,6 @@ body.dark .admin{
 
 </div>
 
-<!-- ADMIN PANEL -->
-
 <div class="admin" id="adminBox">
 <h3>Налаштування програми</h3>
 
@@ -263,25 +261,20 @@ function calc(){
  if(area>norm){
   reasons.push("Площа перевищує норматив ("+norm+" м²).");
  }
-
  if(price>maxPriceByFormula){
   reasons.push("Ціна перевищує допустиму по формулі програми.");
  }
-
  if(price>PROGRAM_LIMIT){
   reasons.push("Ціна перевищує ліміт програми.");
  }
-
  if(loan>PROGRAM_LIMIT){
   reasons.push("Сума кредиту перевищує ліміт програми.");
  }
-
  if(loan>cap){
   reasons.push("Банк не видає таку суму.");
  }
-
  if(downP<minDown){
-  reasons.push("Перший внесок менший за мінімальний.");
+  reasons.push("Перший внесок менший за мінімальний ("+minDown+"%).");
  }
 
  const fit=reasons.length===0;
@@ -298,9 +291,12 @@ function calc(){
  ${fit?'✅ Клієнт проходить':'❌ Клієнт не проходить'}
  </div>
 
- Ціна: ${fmt(price)} грн (~$${fmt((price/usd).toFixed(0))})<br>
- Кредит: ${fmt(loan)} грн<br>
- Платіж ≈ <strong>${fmt(pay.toFixed(0))} грн</strong><br><br>
+ <strong>Фінансовий розрахунок:</strong><br><br>
+
+ Ціна квартири: ${fmt(price)} грн (~$${fmt((price/usd).toFixed(0))})<br>
+ Перший внесок: <strong>${downP}%</strong> (${fmt(downSum)} грн)<br>
+ Сума кредиту: ${fmt(loan)} грн<br>
+ Щомісячний платіж: <strong>${fmt(pay.toFixed(0))} грн</strong><br><br>
 
  ${!fit?`
  <strong>Причини:</strong><br>
