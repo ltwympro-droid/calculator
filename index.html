@@ -9,13 +9,15 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body{font-family:Arial;padding:20px;background:#f4f6f9;}
-.card{background:white;padding:20px;border-radius:12px;max-width:900px;margin:auto;}
+body{font-family:Arial;background:#f4f6f9;padding:20px;}
+.card{background:white;padding:20px;border-radius:12px;max-width:1000px;margin:auto;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
 .field{margin-bottom:15px;}
 label{font-weight:bold;}
 input,select{width:100%;padding:8px;margin-top:4px;}
 button{padding:10px 15px;margin:5px 0;border:none;background:#2563eb;color:white;border-radius:6px;cursor:pointer;}
 .result{margin-top:20px;padding:15px;background:#eef2ff;border-radius:8px;}
+.admin{margin-top:20px;padding:15px;background:#fff3e0;border-radius:8px;display:none;}
 </style>
 </head>
 
@@ -24,6 +26,9 @@ button{padding:10px 15px;margin:5px 0;border:none;background:#2563eb;color:white
 <div class="card">
 
 <h2>єОселя калькулятор</h2>
+
+<div class="grid">
+<div>
 
 <div class="field">
 <label>Ціна квартири</label>
@@ -42,126 +47,147 @@ button{padding:10px 15px;margin:5px 0;border:none;background:#2563eb;color:white
 
 <div class="field">
 <label>Ставка</label>
-<select id="rate">
+<select id="rateSel">
 <option value="3">3%</option>
 <option value="7">7%</option>
 </select>
 </div>
 
 <button onclick="calculate()">Розрахувати</button>
-<button onclick="generatePDF()">Завантажити PDF</button>
+<button onclick="generateReport()">Завантажити PDF</button>
+<button onclick="toggleAdmin()">Адмін</button>
+
+</div>
+
+<div>
 
 <div class="result" id="output"></div>
 
-<canvas id="chart" style="margin-top:20px;"></canvas>
+</div>
+</div>
+
+<div class="admin" id="adminBox">
+<label>PIN 1357</label>
+</div>
 
 </div>
 
 <script>
 
-let payment1=0;
-let payment2=0;
-let totalPaid=0;
-let overpayment=0;
-let loan=0;
-let months=0;
-let firstPeriod=0;
-let rateBase=0;
-let rateAfter=0;
-let chart;
+let lastData={};
 
 function annuity(sum,rate,months){
- let r=rate/100/12;
+ const r=rate/100/12;
  return sum*(r*Math.pow(1+r,months))/(Math.pow(1+r,months)-1);
 }
 
 function remaining(sum,rate,paid,total){
- let r=rate/100/12;
- let p=annuity(sum,rate,total);
+ const r=rate/100/12;
+ const p=annuity(sum,rate,total);
  return sum*Math.pow(1+r,paid)-p*((Math.pow(1+r,paid)-1)/r);
 }
 
 function calculate(){
 
- let price=+document.getElementById("price").value;
- let downP=+document.getElementById("down").value;
- let years=+document.getElementById("years").value;
- rateBase=+document.getElementById("rate").value;
+ const price=+document.getElementById("price").value;
+ const downP=+document.getElementById("down").value;
+ const years=+document.getElementById("years").value;
+ const rateBase=+document.getElementById("rateSel").value;
 
- loan=price*(1-downP/100);
- months=years*12;
- firstPeriod=Math.min(120,months);
- rateAfter=rateBase==3?6:10;
+ const loan=price*(1-downP/100);
+ const months=years*12;
+ const firstMonths=Math.min(120,months);
+ const rateAfter=rateBase==3?6:10;
 
- payment1=annuity(loan,rateBase,months);
- let balance=remaining(loan,rateBase,firstPeriod,months);
+ const pay1=annuity(loan,rateBase,months);
+ const balanceAfter10=remaining(loan,rateBase,firstMonths,months);
 
+ let pay2=0;
  if(months>120){
-  payment2=annuity(balance,rateAfter,months-120);
- } else {
-  payment2=0;
+  pay2=annuity(balanceAfter10,rateAfter,months-120);
  }
 
- totalPaid=payment1*firstPeriod+payment2*Math.max(0,months-120);
- overpayment=totalPaid-loan;
+ const totalPaid=pay1*firstMonths+pay2*Math.max(0,months-120);
+ const overpayment=totalPaid-loan;
+
+ lastData={
+  price,downP,loan,pay1,pay2,totalPaid,overpayment,months
+ };
 
  document.getElementById("output").innerHTML=
  `
  Сума кредиту: ${loan.toLocaleString()} грн<br>
- Платіж перші 10 років: ${payment1.toFixed(0)} грн<br>
- Платіж з 11-го року: ${payment2.toFixed(0)} грн<br>
+ Платіж перші 10 років: ${pay1.toFixed(0)} грн<br>
+ ${months>120?`Платіж з 11-го року: ${pay2.toFixed(0)} грн<br>`:""}
  Загальна сума виплат: ${totalPaid.toFixed(0)} грн<br>
  Переплата: ${overpayment.toFixed(0)} грн
  `;
-
- drawChart();
 }
 
-function drawChart(){
+async function generateReport(){
 
- let data=[];
- for(let i=0;i<months;i++){
-  if(i<120) data.push(payment1);
-  else data.push(payment2);
+ if(!lastData.loan){
+  alert("Спочатку зробіть розрахунок");
+  return;
  }
 
- if(chart) chart.destroy();
-
- chart=new Chart(document.getElementById("chart"),{
-  type:"line",
-  data:{
-   labels:data.map((_,i)=>i+1),
-   datasets:[{
-    label:"Щомісячний платіж",
-    data:data,
-    borderColor:"#2563eb",
-    fill:false
-   }]
-  }
- });
-}
-
-async function generatePDF(){
-
  const { jsPDF } = window.jspdf;
- let doc=new jsPDF();
+ const doc=new jsPDF();
 
  doc.setFontSize(16);
  doc.text("Звіт по програмі єОселя",20,20);
 
  doc.setFontSize(12);
- doc.text(`Сума кредиту: ${loan.toFixed(0)} грн`,20,40);
- doc.text(`Платіж перші 10 років: ${payment1.toFixed(0)} грн`,20,50);
- doc.text(`Платіж з 11-го року: ${payment2.toFixed(0)} грн`,20,60);
- doc.text(`Загальна сума виплат: ${totalPaid.toFixed(0)} грн`,20,70);
- doc.text(`Переплата: ${overpayment.toFixed(0)} грн`,20,80);
+ doc.text(`Ціна квартири: ${lastData.price.toLocaleString()} грн`,20,35);
+ doc.text(`Перший внесок: ${lastData.downP}%`,20,45);
+ doc.text(`Сума кредиту: ${lastData.loan.toLocaleString()} грн`,20,55);
+ doc.text(`Платіж перші 10 років: ${lastData.pay1.toFixed(0)} грн`,20,70);
+ if(lastData.pay2>0)
+  doc.text(`Платіж з 11-го року: ${lastData.pay2.toFixed(0)} грн`,20,80);
+ doc.text(`Загальна сума виплат: ${lastData.totalPaid.toFixed(0)} грн`,20,95);
+ doc.text(`Переплата: ${lastData.overpayment.toFixed(0)} грн`,20,105);
 
- let canvas=document.getElementById("chart");
- let img=canvas.toDataURL("image/png",1.0);
+ const canvas=document.createElement("canvas");
+ canvas.width=800;
+ canvas.height=400;
+ const ctx=canvas.getContext("2d");
 
- doc.addImage(img,"PNG",15,90,180,80);
+ const payments=[];
+ for(let i=0;i<lastData.months;i++){
+  if(i<120) payments.push(lastData.pay1);
+  else payments.push(lastData.pay2);
+ }
+
+ new Chart(ctx,{
+  type:"line",
+  data:{
+   labels:payments.map((_,i)=>i+1),
+   datasets:[{
+    label:"Щомісячний платіж",
+    data:payments,
+    borderColor:"#2563eb",
+    fill:false
+   }]
+  },
+  options:{responsive:false}
+ });
+
+ await new Promise(r=>setTimeout(r,500));
+
+ const img=canvas.toDataURL("image/png",1.0);
+ doc.addPage();
+ doc.text("Графік зміни щомісячного платежу",20,20);
+ doc.addImage(img,"PNG",15,30,180,90);
 
  doc.save("YeOselia_Report.pdf");
+}
+
+function toggleAdmin(){
+ const pin=prompt("Введіть PIN");
+ if(pin==="1357"){
+  const box=document.getElementById("adminBox");
+  box.style.display=box.style.display==="block"?"none":"block";
+ }
 }
 
 calculate();
