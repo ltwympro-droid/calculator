@@ -13,6 +13,7 @@
  --accent:#0a84ff;
  --soft:#eef3ff;
 }
+
 body.dark{
  --bg:#0f1720;
  --card:#18222d;
@@ -20,13 +21,16 @@ body.dark{
  --accent:#3aa0ff;
  --soft:#1e2b3a;
 }
+
 body{
  font-family:Arial;
  background:var(--bg);
  color:var(--text);
  margin:0;
  padding:20px;
+ transition:.25s;
 }
+
 .card{
  max-width:760px;
  margin:auto;
@@ -35,187 +39,25 @@ body{
  border-radius:14px;
  box-shadow:0 10px 30px rgba(0,0,0,.08);
 }
+
 .block{margin-top:16px}
-label{font-weight:bold;display:flex;justify-content:space-between}
-input,select{width:100%;padding:8px;margin-top:6px}
+
+label{
+ font-weight:bold;
+ display:flex;
+ justify-content:space-between;
+}
+
+input,select{
+ width:100%;
+ padding:8px;
+ margin-top:6px;
+}
+
 input[type=range]{padding:0}
+
 .result{
  margin-top:22px;
  background:var(--soft);
  padding:16px;
- border-radius:10px;
-}
-.ok{color:#0a7a2f;font-weight:bold}
-.bad{color:#c40000;font-weight:bold}
-button{
- padding:10px 14px;
- border:none;
- border-radius:8px;
- background:var(--accent);
- color:white;
- cursor:pointer;
- margin:4px 4px 0 0;
-}
-.admin{
- background:#fff4e5;
- padding:14px;
- border-radius:10px;
- margin-top:20px;
- display:none;
-}
-@media print{
- button,.admin{display:none}
-}
-</style>
-</head>
-
-<body>
-
-<div class="card">
-
-<h2>єОселя / USL калькулятор</h2>
-
-<button onclick="toggleTheme()">🌙/☀️</button>
-<button onclick="loadRate()">Курс НБУ</button>
-<button onclick="adminLogin()">Адмін</button>
-<button onclick="window.print()">PDF</button>
-
-<div id="rateBox"></div>
-
-<div class="block">
-<label>Склад сімʼї <span id="famVal"></span></label>
-<input type="range" id="fam" min="1" max="6" value="2">
-</div>
-
-<div class="block">
-<label>Площа м² <span id="areaVal"></span></label>
-<input type="range" id="area" min="20" max="150" value="60">
-</div>
-
-<div class="block">
-<label>Ціна за м² <span id="m2Val"></span></label>
-<input type="range" id="m2" min="25000" max="120000" step="1000" value="65000">
-</div>
-
-<div class="block">
-<label>Перший внесок % <span id="downVal"></span></label>
-<input type="range" id="down" min="10" max="80" value="25">
-</div>
-
-<div class="block">
-<label>Ставка</label>
-<select id="rateSel">
-<option value="3">3%</option>
-<option value="7">7%</option>
-</select>
-</div>
-
-<div class="block">
-<label>Термін років <span id="yearsVal"></span></label>
-<input type="range" id="years" min="5" max="30" value="20">
-</div>
-
-<div class="admin" id="adminBox">
-<h3>Адмін налаштування</h3>
-База м² <input id="baseM2" value="30081">
-Коеф <input id="coef" value="2">
-Допуск % <input id="extraPct" value="10">
-Мін внесок % <input id="minDown" value="20">
-Ліміт кредиту <input id="bankCap" value="3000000">
-</div>
-
-<div class="result" id="out"></div>
-
-</div>
-
-<script>
-const PIN="1357";
-let usd=38;
-
-const $ = id => document.getElementById(id);
-const fmt = n => Number(n).toLocaleString("uk-UA");
-
-function toggleTheme(){
- document.body.classList.toggle("dark");
-}
-
-function adminLogin(){
- if(prompt("PIN")==PIN) $("adminBox").style.display="block";
-}
-
-async function loadRate(){
- try{
-  const r = await fetch("https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json");
-  const j = await r.json();
-  usd = j[0].rate;
-  $("rateBox").innerHTML="USD НБУ: "+usd.toFixed(2);
-  calc();
- }catch{}
-}
-
-[
-"fam","area","m2","down","years",
-"rateSel","baseM2","coef","extraPct","minDown","bankCap"
-].forEach(id => $(id).addEventListener("input", calc));
-
-function calc(){
-
- const fam = +$("fam").value;
- const area = +$("area").value;
- const m2 = +$("m2").value;
- const downP = +$("down").value;
- const years = +$("years").value;
- const rate = +$("rateSel").value;
-
- const base = +$("baseM2").value;
- const coef = +$("coef").value;
- const extra = +$("extraPct").value / 100;
- const minDown = +$("minDown").value;
- const cap = +$("bankCap").value;
-
- const norm = fam<=2 ? 52.5 : 52.5+(fam-2)*21;
- const maxArea = Math.min(norm*(1+extra),115.5);
- const limitM2 = base*coef*(1+extra);
- const maxPrice = limitM2*norm;
-
- const price = area*m2;
- const downSum = price*downP/100;
- const loan = price-downSum;
-
- const mr = rate/100/12;
- const months = years*12;
- const pay = loan*(mr*Math.pow(1+mr,months)) /
-             (Math.pow(1+mr,months)-1);
-
- const fit =
-  area<=maxArea &&
-  m2<=limitM2 &&
-  price<=maxPrice &&
-  downP>=minDown &&
-  loan<=cap;
-
- $("famVal").innerHTML=fam;
- $("areaVal").innerHTML=area+" м²";
- $("m2Val").innerHTML=fmt(m2);
- $("downVal").innerHTML=downP+"%";
- $("yearsVal").innerHTML=years+" років";
-
- $("out").innerHTML = `
- ${fit?'<div class="ok">✅ Проходить під єОселя</div>':'<div class="bad">❌ Не проходить</div>'}
- <hr>
- Ціна: ${fmt(price)} грн (~$${fmt((price/usd).toFixed(0))})<br>
- Внесок: ${fmt(downSum)} грн<br>
- Кредит: ${fmt(loan)} грн<br>
- Платіж ≈ ${fmt(pay.toFixed(0))} грн<br>
- <hr>
- Ліміт м²: ${fmt(limitM2)}<br>
- Макс площа: ${maxArea.toFixed(1)} м²<br>
- Макс ціна: ${fmt(maxPrice.toFixed(0))}
- `;
-}
-
-calc();
-</script>
-
-</body>
-</html>
+ border-radius
