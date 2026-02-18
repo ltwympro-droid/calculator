@@ -228,6 +228,18 @@ async function updateRate(){
  $(id).addEventListener("input",calc);
 });
 
+function annuityPayment(sum, rate, months){
+ const r=rate/100/12;
+ return sum*(r*Math.pow(1+r,months))/(Math.pow(1+r,months)-1);
+}
+
+function remainingBalance(sum, rate, monthsPaid, totalMonths){
+ const r=rate/100/12;
+ const payment=annuityPayment(sum,rate,totalMonths);
+ return sum*Math.pow(1+r,monthsPaid) -
+        payment*((Math.pow(1+r,monthsPaid)-1)/r);
+}
+
 function calc(){
 
  const price=+$("price").value;
@@ -235,7 +247,7 @@ function calc(){
  const fam=+$("fam").value;
  const downP=+$("down").value;
  const years=+$("years").value;
- const rate=+$("rateSel").value;
+ const rateBase=+$("rateSel").value;
  const cap=+$("bankCap").value;
 
  const base=+$("baseM2").value;
@@ -251,9 +263,19 @@ function calc(){
  const downSum=price*downP/100;
  const loan=price-downSum;
 
- const mr=rate/100/12;
- const pay=loan*(mr*Math.pow(1+mr,years*12))/
-           (Math.pow(1+mr,years*12)-1);
+ const totalMonths=years*12;
+ const firstPeriodMonths=Math.min(120,totalMonths);
+
+ let rateAfter = rateBase==3 ? 6 : 10;
+
+ const payment1=annuityPayment(loan,rateBase,totalMonths);
+ const balanceAfter10=remainingBalance(loan,rateBase,firstPeriodMonths,totalMonths);
+
+ let payment2=0;
+ if(totalMonths>120){
+   const remainingMonths=totalMonths-120;
+   payment2=annuityPayment(balanceAfter10,rateAfter,remainingMonths);
+ }
 
  let reasons=[];
  let advice="";
@@ -263,7 +285,7 @@ function calc(){
    const neededDown=price-maxLoan;
    if(neededDown>downSum){
      const add=neededDown-downSum;
-     advice=`Щоб пройти, потрібно збільшити перший внесок приблизно на ${fmt(add)} грн (мінімальний внесок ≈ ${fmt(neededDown)} грн).`;
+     advice=`Щоб пройти, потрібно збільшити внесок приблизно на ${fmt(add)} грн.`;
    }
  }
 
@@ -290,8 +312,13 @@ function calc(){
 
  Ціна: ${fmt(price)} грн (~$${fmt((price/usd).toFixed(0))})<br>
  Перший внесок: <strong>${downP}%</strong> (${fmt(downSum)} грн)<br>
- Кредит: ${fmt(loan)} грн<br>
- Платіж ≈ <strong>${fmt(pay.toFixed(0))} грн</strong><br><br>
+ Сума кредиту: ${fmt(loan)} грн<br><br>
+
+ <strong>Платіж перші 10 років:</strong> ${fmt(payment1.toFixed(0))} грн<br>
+ ${totalMonths>120?`
+ <strong>Платіж з 11-го року:</strong> ${fmt(payment2.toFixed(0))} грн<br>
+ `:""}
+ <br>
 
  ${!fit?`
  <strong>Причини:</strong><br>
@@ -302,7 +329,3 @@ function calc(){
 }
 
 calc();
-</script>
-
-</body>
-</html>
