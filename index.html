@@ -31,7 +31,7 @@ body{
 }
 
 .card{
- max-width:780px;
+ max-width:760px;
  margin:auto;
  background:var(--card);
  padding:24px;
@@ -104,8 +104,13 @@ button{
 <div id="rateBox"></div>
 
 <div class="block">
-<label>Ціна квартири (грн) <span id="priceVal"></span></label>
+<label>Загальна ціна квартири (грн) <span id="priceVal"></span></label>
 <input type="range" id="price" min="500000" max="10000000" step="50000" value="3900000">
+</div>
+
+<div class="block">
+<label>Площа квартири м² <span id="areaVal"></span></label>
+<input type="range" id="area" min="20" max="150" value="60">
 </div>
 
 <div class="block">
@@ -134,12 +139,12 @@ button{
 <!-- ADMIN -->
 
 <div class="admin" id="adminBox">
-<h3>Адмін налаштування</h3>
+<h3>Налаштування програми</h3>
 
 <label>База м²</label>
 <input id="baseM2" type="number" value="30081">
 
-<label>Коеф</label>
+<label>Коефіцієнт</label>
 <input id="coef" type="number" value="2">
 
 <label>Допуск %</label>
@@ -148,7 +153,7 @@ button{
 <label>Мін внесок %</label>
 <input id="minDown" type="number" value="20">
 
-<label>Ліміт кредиту</label>
+<label>Ліміт кредиту банку</label>
 <input id="bankCap" type="number" value="3000000">
 
 <button onclick="calc()">Застосувати</button>
@@ -191,7 +196,7 @@ async function loadRate(){
 }
 
 [
-"price","fam","down","years","rateSel",
+"price","area","fam","down","years","rateSel",
 "baseM2","coef","extraPct","minDown","bankCap"
 ].forEach(id => {
  $(id).addEventListener("input", calc);
@@ -201,6 +206,7 @@ async function loadRate(){
 function calc(){
 
  const price = +$("price").value;
+ const area = +$("area").value;
  const fam = +$("fam").value;
  const downP = +$("down").value;
  const years = +$("years").value;
@@ -208,33 +214,37 @@ function calc(){
 
  const base = +$("baseM2").value;
  const coef = +$("coef").value;
- const extra = +$("extraPct").value / 100;
+ const extra = +$("extraPct").value/100;
  const minDown = +$("minDown").value;
  const cap = +$("bankCap").value;
 
- const norm = fam<=2 ? 52.5 : 52.5+(fam-2)*21;
+ const normArea = fam<=2 ? 52.5 : 52.5+(fam-2)*21;
+ const maxArea = Math.min(normArea*(1+extra),115.5);
+
  const limitM2 = base*coef*(1+extra);
- const maxPrice = limitM2*norm;
+ const maxPrice = limitM2*normArea;
 
  const downSum = price*downP/100;
  const loan = price-downSum;
 
  const mr = rate/100/12;
  const months = years*12;
- const pay = loan*(mr*Math.pow(1+mr,months)) /
+ const pay = loan*(mr*Math.pow(1+mr,months))/
              (Math.pow(1+mr,months)-1);
 
  const fit =
   price<=maxPrice &&
+  area<=maxArea &&
   downP>=minDown &&
   loan<=cap;
 
  $("priceVal").innerHTML=fmt(price);
+ $("areaVal").innerHTML=area+" м²";
  $("famVal").innerHTML=fam;
  $("downVal").innerHTML=downP+"%";
  $("yearsVal").innerHTML=years+" років";
 
- $("out").innerHTML = `
+ $("out").innerHTML=`
  ${fit?'<div class="ok">✅ Проходить під єОселя</div>':'<div class="bad">❌ Не проходить</div>'}
  <hr>
  Ціна: ${fmt(price)} грн (~$${fmt((price/usd).toFixed(0))})<br>
@@ -242,8 +252,9 @@ function calc(){
  Кредит: ${fmt(loan)} грн<br>
  Платіж ≈ ${fmt(pay.toFixed(0))} грн<br>
  <hr>
- Макс допустима ціна: ${fmt(maxPrice.toFixed(0))} грн<br>
- Ліміт кредиту: ${fmt(cap)} грн
+ Норматив площі: ${normArea.toFixed(1)} м²<br>
+ Макс допустима площа: ${maxArea.toFixed(1)} м²<br>
+ Макс допустима ціна: ${fmt(maxPrice.toFixed(0))} грн
  `;
 }
 
